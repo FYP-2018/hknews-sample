@@ -1,5 +1,5 @@
 import re
-import jieba
+import thulac
 
 def stopwordslist(filepath):
     stopwords = [line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]
@@ -14,7 +14,6 @@ def check_length(fdirs):
 
 
 def _clean_sentence(sent):
-    # sent = re.sub(u"[^\u4E00-\u9FFF\！\，\。\？]+", '', sent)
     sent = sent.lower()
     filtrate = re.compile(u'[^\u4E00-\u9FA5\a-z]')  # non-Chinese unicode range
     context = filtrate.sub(r'', sent)  # remove all non-Chinese characters
@@ -37,31 +36,32 @@ def char_base_parsing(fdir, outp_dir):
             print(line)
             num_files += 1
     fout.close()
-    print("processed {} files in {}".format(num_files, fdir))
+    print("processed {} docs in {}".format(num_files, fdir))
 
 
 def word_base_parsing(fdir, outp_dir):
     num_files = 0
-    jieba.load_userdict('./hk_words/actor_names.txt')
-    jieba.load_userdict('./hk_words/dict.txt.big.txt')
-
+    thu = thulac.thulac(user_dict='./hk_words/actor_names.txt', seg_only=True)
     fout = open(outp_dir, 'w', encoding='utf-8')
     with open(fdir, 'r', encoding='utf-8') as f:
         num_files = 0
         for line in f.readlines():
             # print(line)
             line = _clean_sentence(line)
+
+            # line = ' '.join(jieba.cut(outstr, cut_all=False))
+            line = ''.join(thu.cut(line, text=True))
+
             stopwords = stopwordslist('./hk_words/stopwords_traditionalChinese.txt')
-            outstr = ""
-            for word in line:
+            outstr = ''
+            for word in line.split(" "):
                 if word not in stopwords:
-                    outstr += word
-            line = ' '.join(jieba.cut(outstr, cut_all=False))
-            fout.write(line.strip() + '\n')
+                    outstr += ' ' + word
+            fout.write(outstr.strip() + '\n')
             num_files += 1
 
     fout.close()
-    print("processed {} files in {}".format(num_files, fdir))
+    print("processed {} docs in {}".format(num_files, fdir))
 
 
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     
     for f in fs:
         char_base_parsing(f.format('.txt'), f.format('_char.txt'))
-        word_base_parsing(f.format('.txt'), f.format('_word.txt'))
+        word_base_parsing(f.format('.txt'), f.format('_removed_word.txt'))
     
     # check_length([fin1, fin2, fout1, fout2, fout3, fout4])
 
