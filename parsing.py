@@ -1,6 +1,11 @@
 import re
 import jieba
 
+def stopwordslist(filepath):
+    stopwords = [line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]
+    return stopwords
+
+
 def check_length(fdirs):
     for fdir in fdirs:
         fin = open(fdir, 'r', encoding='utf-8')
@@ -9,8 +14,12 @@ def check_length(fdirs):
 
 
 def _clean_sentence(sent):
-    sent = re.sub(u"[^\u4E00-\u9FFF\！\，\。\？]+", '', sent)
-    return sent
+    # sent = re.sub(u"[^\u4E00-\u9FFF\！\，\。\？]+", '', sent)
+    sent = sent.lower()
+    filtrate = re.compile(u'[^\u4E00-\u9FA5\a-z]')  # non-Chinese unicode range
+    context = filtrate.sub(r'', sent)  # remove all non-Chinese characters
+
+    return context
 
 
 def char_base_parsing(fdir, outp_dir):
@@ -35,15 +44,19 @@ def word_base_parsing(fdir, outp_dir):
     num_files = 0
     jieba.load_userdict('./hk_words/actor_names.txt')
     jieba.load_userdict('./hk_words/dict.txt.big.txt')
-    
+
     fout = open(outp_dir, 'w', encoding='utf-8')
     with open(fdir, 'r', encoding='utf-8') as f:
         num_files = 0
         for line in f.readlines():
             # print(line)
             line = _clean_sentence(line)
-            line = ' '.join(jieba.cut(line, cut_all=False))
-            
+            stopwords = stopwordslist('./hk_words/stopwords_traditionalChinese.txt')
+            outstr = ""
+            for word in line:
+                if word not in stopwords:
+                    outstr += word
+            line = ' '.join(jieba.cut(outstr, cut_all=False))
             fout.write(line.strip() + '\n')
             num_files += 1
 
